@@ -18,12 +18,13 @@ const float T_TURN = 3.0f;                     // [s]
 const int   N_REPS = 3;
 
 // ---------- Control ----------
-const float V_MAX     = 0.85f;  // [m/s] ~140 rpm * 2πR. Ajustar con prueba real.
+const float V_MAX     = 0.72f;  // [m/s] medido con PWM 255 y ruedas al aire (barrido 2026-11-16)
 // Valores de fábrica. Las ganancias por rueda se ajustan desde panel.py y se guardan en flash (W);
-// "D" vuelve a estos valores.
-const float KFF       = 255.0f / V_MAX;  // feedforward PWM por m/s
-const float KP        = 150.0f;
-const float KI        = 300.0f;
+// "D" vuelve a estos valores. Sintonizados 2026-11-16 (ruedas al aire): sobrepaso <= 12 %, error < 1.3 %.
+// KFF NO es 255/V_MAX: la curva PWM->v no es lineal (zona muerta ~50-75 PWM); 230 es el mejor valor único.
+const float KFF       = 230.0f;  // feedforward PWM por m/s
+const float KP        = 200.0f;
+const float KI        = 600.0f;
 const uint32_t DT_MS  = 50;      // periodo de control (20 Hz; con 1 canal más rápido = poca resolución)
 
 // ---------- Seguridad ----------

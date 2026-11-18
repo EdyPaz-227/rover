@@ -73,7 +73,9 @@ class Panel(QtWidgets.QMainWindow):
         self.tabs = QtWidgets.QTabWidget()
         self.pestanas = [P(self.enlace) for P in PESTANAS]
         for p in self.pestanas:
-            self.tabs.addTab(p, p.TITULO)
+            caja = QtWidgets.QScrollArea(widgetResizable=True)   # barra de scroll en pantallas chicas
+            caja.setWidget(p)
+            self.tabs.addTab(caja, p.TITULO)
         self.tabs.currentChanged.connect(self.cambio_pestana)
 
         # --- bitácora + comando manual ---
@@ -130,10 +132,14 @@ class Panel(QtWidgets.QMainWindow):
                 p.detener()
         self.enlace.enviar("S")
 
+    def actual(self):
+        """Pestaña visible (cada una va dentro de un QScrollArea)."""
+        return self.pestanas[self.tabs.currentIndex()]
+
     def cambio_pestana(self, *_):
         self.b_grabar.setChecked(False)
         self.paro()   # al cambiar de sección, el rover se detiene
-        self.enlace.enviar(f"F {self.tabs.currentWidget().FLUJO}")
+        self.enlace.enviar(f"F {self.actual().FLUJO}")
 
     def enviar_manual(self):
         if t := self.manual.text().strip():
@@ -147,7 +153,7 @@ class Panel(QtWidgets.QMainWindow):
             self.log(f"# guardado {self.archivo.name}")
             self.archivo = None
         if on:
-            flujo = self.tabs.currentWidget().FLUJO
+            flujo = self.actual().FLUJO
             (AQUI / "datos").mkdir(exist_ok=True)
             ruta = AQUI / "datos" / f"panel_{flujo}_{datetime.now():%Y%m%d_%H%M%S}.csv"
             self.archivo = open(ruta, "w", encoding="utf-8", newline="")
@@ -159,7 +165,7 @@ class Panel(QtWidgets.QMainWindow):
         self.bitacora.appendPlainText(texto)
 
     def tick(self):
-        flujo = self.tabs.currentWidget().FLUJO
+        flujo = self.actual().FLUJO
         for tipo, datos, cruda in self.enlace.pendientes():
             if tipo == "#":
                 self.log(datos)
@@ -174,7 +180,7 @@ class Panel(QtWidgets.QMainWindow):
                 self.archivo.write(cruda + "\n")
             for p in self.pestanas:
                 p.recibir(tipo, datos)
-        self.tabs.currentWidget().refrescar()
+        self.actual().refrescar()
 
     def closeEvent(self, e):
         self.b_grabar.setChecked(False)
@@ -186,6 +192,7 @@ if __name__ == "__main__":
     pg.setConfigOptions(antialias=True)
     app = QtWidgets.QApplication(sys.argv)
     w = Panel()
-    w.resize(1300, 850)
+    zona = app.primaryScreen().availableGeometry()   # que no se salga en pantallas chicas
+    w.resize(min(1300, zona.width()), min(850, zona.height() - 40))
     w.show()
     sys.exit(app.exec())

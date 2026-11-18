@@ -58,7 +58,8 @@ class Enlace:
         try:
             self.ser.write((cmd + "\n").encode())
         except Exception as e:
-            self.cola.put(("#", f"# error al enviar: {e}"))
+            msg = f"# error al enviar: {e}"
+            self.cola.put(("#", msg, msg))
             return
         if self.al_enviar:
             self.al_enviar(cmd)
@@ -68,7 +69,8 @@ class Enlace:
             try:
                 linea = ser.readline().decode(errors="replace")
             except Exception as e:
-                self.cola.put(("#", f"# puerto cerrado: {e}"))
+                msg = f"# puerto cerrado: {e}"
+                self.cola.put(("#", msg, msg))
                 self.ser = None
                 return
             if (r := parsear(linea)) is not None:

@@ -27,6 +27,8 @@ bool  saturada[4];
 uint32_t tSat[4], tSinCuentas[4], cuentasAnt[4];
 bool  paro = false;
 String motivoParo;
+bool  depuracion = false;  // comando X: los fallos de encoder/IMU solo avisan (para medir con osciloscopio)
+uint32_t tAviso = 0;
 
 int lado(int i) { return i < 2 ? 0 : 1; }
 
@@ -46,7 +48,12 @@ void pararMotores() {
   ponerDireccion(PIN_DER_A, PIN_DER_B, 0);
 }
 
-void activarParo(const String& motivo) {
+// siempre = true: para aun en modo depuración (pérdida del enlace: único freno si la PC se cae).
+void activarParo(const String& motivo, bool siempre = false) {
+  if (depuracion && !siempre) {
+    if (millis() - tAviso > 1000) { tAviso = millis(); enviar("# aviso (depuración, sin paro): %s\n", motivo.c_str()); }
+    return;
+  }
   pararMotores();
   if (!paro) { paro = true; motivoParo = motivo; enviar("# PARO: %s\n", motivo.c_str()); }
 }

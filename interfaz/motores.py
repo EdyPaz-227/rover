@@ -63,10 +63,26 @@ class Motores(QtWidgets.QWidget):
         self.r_vel = QtWidgets.QRadioButton("Velocidad con PID [m/s]", checked=True)
         self.r_pwm = QtWidgets.QRadioButton("PWM directo, sin PID [-255..255]")
         self.r_vel.toggled.connect(self._cambio_modo)
+        self.depurar = QtWidgets.QCheckBox("Depuración: fallos de encoder/IMU NO paran")
+        self.depurar.setToolTip("Para medir con osciloscopio. Solo con las ruedas al aire.\n"
+                                "El paro por pérdida de enlace (1 s sin comandos) sigue activo.\n"
+                                "Se apaga solo si el rover se reinicia.")
+        self.depurar.clicked.connect(self._depuracion)
         lay = QtWidgets.QVBoxLayout(caja)
         lay.addWidget(self.r_vel)
         lay.addWidget(self.r_pwm)
+        lay.addWidget(self.depurar)
         return caja
+
+    def _depuracion(self, on):
+        if on and QtWidgets.QMessageBox.question(
+                self, "Modo depuración",
+                "Los fallos de encoder e IMU ya no detendrán los motores (solo aparecerá un aviso).\n"
+                "¿Las ruedas están al aire?") != QtWidgets.QMessageBox.Yes:
+            self.depurar.setChecked(False)
+            return
+        self.enlace.enviar(f"X {int(on)}")
+        self.depurar.setStyleSheet("color:#c62828; font-weight:bold" if on else "")
 
     def _caja_mando(self):
         caja = QtWidgets.QGroupBox("Mando por lado")

@@ -13,6 +13,8 @@
 //   C <ox> <oy> <oz> <sx> <sy> <sz> calibración del magnetómetro (desplazamiento y escala)
 //   W               guarda ganancias + calibración del mag en flash
 //   D               vuelve a los valores de config.h (y borra la flash)
+//   X <1|0>         modo depuración: fallos de encoder/IMU solo avisan, no paran (ruedas AL AIRE).
+//                   El paro por "sin comandos" sigue activo. Arranca en 0; no se guarda en flash.
 //
 // Flujos (uno a la vez, para no saturar el enlace):
 //   M  t_ms,spL,spR,vDI,vTI,vDD,vTD,pwmDI,pwmTI,pwmDD,pwmTD,wz,theta,sat,paro   (sin prefijo: lo usan
@@ -115,6 +117,13 @@ void procesar(const String &l) {
                &m.escala[0], &m.escala[1], &m.escala[2]) == 6) fijarCalMag(m);
     else enviar("# error: usa C <ox> <oy> <oz> <sx> <sy> <sz>\n");
     reportarAjustes();
+  } else if (c == 'X') {
+    int on = 0;
+    sscanf(a, "%d", &on);
+    depuracion = on;
+    if (depuracion && paro) { paro = false; pararMotores(); }   // rearma para poder mover
+    enviar(depuracion ? "# DEPURACION ON: fallos de encoder/IMU NO paran (el paro por enlace sigue)\n"
+                      : "# depuracion OFF: paros de seguridad activos\n");
   } else if (c == 'W') {
     guardarAjustes();
   } else if (c == 'D') {
@@ -148,7 +157,7 @@ void loop() {
   uint32_t ahora = millis();
 
   // Paro si se pierde el enlace con la PC mientras el rover se mueve
-  if (moviendo() && ahora - tCmd > CMD_TIMEOUT_MS) activarParo("sin comandos");
+  if (moviendo() && ahora - tCmd > CMD_TIMEOUT_MS) activarParo("sin comandos", true);
 
   if (ahora - tCtrl < DT_MS) return;
   tCtrl = ahora;
